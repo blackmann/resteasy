@@ -41,6 +41,26 @@ func (b ServiceBuilder) Find(handle FindHandler) ServiceBuilder {
 	return b
 }
 
+func (b ServiceBuilder) Get(handle GetHandler) ServiceBuilder {
+	b.get = handle
+	return b
+}
+
+func (b ServiceBuilder) Patch(handle PatchHandler) ServiceBuilder {
+	b.patch = handle
+	return b
+}
+
+func (b ServiceBuilder) Remove(handle RemoveHandler) ServiceBuilder {
+	b.remove = handle
+	return b
+}
+
+func (b ServiceBuilder) Update(handle UpdateHandler) ServiceBuilder {
+	b.update = handle
+	return b
+}
+
 func (b ServiceBuilder) Service() (service Service, allowedMethods []int) {
 	service = AnonymousService{b}
 	allowedMethods = []int{}
