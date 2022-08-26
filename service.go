@@ -1,26 +1,29 @@
 package rest
 
 import (
+	"encoding/json"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/exp/slices"
+	"io"
 )
 
 type Service interface {
-	Create(data interface{}, p Param) (interface{}, *ServiceError)
-	Find(p Param) (interface{}, *ServiceError)
-	Get(id string, p Param) (interface{}, *ServiceError)
-	Patch(id string, p Param) (interface{}, *ServiceError)
-	Remove(id string, p Param) (interface{}, *ServiceError)
-	Update(id string, p Param) (interface{}, *ServiceError)
+	Create(data interface{}, p Params) (interface{}, *ServiceError)
+	Find(p Params) (interface{}, *ServiceError)
+	Get(id string, p Params) (interface{}, *ServiceError)
+	Patch(id string, data interface{}, p Params) (interface{}, *ServiceError)
+	Remove(id string, p Params) (interface{}, *ServiceError)
+	Update(id string, data interface{}, p Params) (interface{}, *ServiceError)
 
 	Prepare(ctx *gin.Context)
 }
 
-type CreateHandler func(data interface{}, p Param) (interface{}, *ServiceError)
-type FindHandler func(p Param) (interface{}, *ServiceError)
-type GetHandler func(id string, p Param) (interface{}, *ServiceError)
-type PatchHandler func(id string, p Param) (interface{}, *ServiceError)
-type RemoveHandler func(id string, p Param) (interface{}, *ServiceError)
-type UpdateHandler func(id string, p Param) (interface{}, *ServiceError)
+type CreateHandler func(data interface{}, p Params) (interface{}, *ServiceError)
+type FindHandler func(p Params) (interface{}, *ServiceError)
+type GetHandler func(id string, p Params) (interface{}, *ServiceError)
+type PatchHandler func(id string, data interface{}, p Params) (interface{}, *ServiceError)
+type RemoveHandler func(id string, p Params) (interface{}, *ServiceError)
+type UpdateHandler func(id string, data interface{}, p Params) (interface{}, *ServiceError)
 
 type ServiceBuilder struct {
 	create CreateHandler
@@ -92,23 +95,23 @@ func (b ServiceBuilder) Service() (service Service, allowedMethods []int) {
 	return
 }
 
-func NewService() *ServiceBuilder {
-	return &ServiceBuilder{}
+func NewService() ServiceBuilder {
+	return ServiceBuilder{}
 }
 
 type AnonymousService struct {
 	serviceBuilder ServiceBuilder
 }
 
-func (a AnonymousService) Patch(id string, p Param) (interface{}, *ServiceError) {
+func (a AnonymousService) Patch(id string, data interface{}, p Params) (interface{}, *ServiceError) {
 	if a.serviceBuilder.patch != nil {
-		return a.serviceBuilder.patch(id, p)
+		return a.serviceBuilder.patch(id, data, p)
 	}
 
 	return nil, MethodNotAllowed()
 }
 
-func (a AnonymousService) Remove(id string, p Param) (interface{}, *ServiceError) {
+func (a AnonymousService) Remove(id string, p Params) (interface{}, *ServiceError) {
 	if a.serviceBuilder.remove != nil {
 		return a.serviceBuilder.remove(id, p)
 	}
@@ -116,15 +119,15 @@ func (a AnonymousService) Remove(id string, p Param) (interface{}, *ServiceError
 	return nil, MethodNotAllowed()
 }
 
-func (a AnonymousService) Update(id string, p Param) (interface{}, *ServiceError) {
+func (a AnonymousService) Update(id string, data interface{}, p Params) (interface{}, *ServiceError) {
 	if a.serviceBuilder.update != nil {
-		return a.serviceBuilder.update(id, p)
+		return a.serviceBuilder.update(id, data, p)
 	}
 
 	return nil, MethodNotAllowed()
 }
 
-func (a AnonymousService) Create(data interface{}, p Param) (interface{}, *ServiceError) {
+func (a AnonymousService) Create(data interface{}, p Params) (interface{}, *ServiceError) {
 	if a.serviceBuilder.create != nil {
 		return a.serviceBuilder.create(data, p)
 	}
@@ -132,7 +135,7 @@ func (a AnonymousService) Create(data interface{}, p Param) (interface{}, *Servi
 	return nil, MethodNotAllowed()
 }
 
-func (a AnonymousService) Find(p Param) (interface{}, *ServiceError) {
+func (a AnonymousService) Find(p Params) (interface{}, *ServiceError) {
 	if a.serviceBuilder.find != nil {
 		return a.serviceBuilder.find(p)
 	}
@@ -140,7 +143,7 @@ func (a AnonymousService) Find(p Param) (interface{}, *ServiceError) {
 	return nil, MethodNotAllowed()
 }
 
-func (a AnonymousService) Get(id string, p Param) (interface{}, *ServiceError) {
+func (a AnonymousService) Get(id string, p Params) (interface{}, *ServiceError) {
 	if a.serviceBuilder.get != nil {
 		return a.serviceBuilder.get(id, p)
 	}
@@ -148,4 +151,18 @@ func (a AnonymousService) Get(id string, p Param) (interface{}, *ServiceError) {
 	return nil, MethodNotAllowed()
 }
 
-func (a AnonymousService) Prepare(ctx *gin.Context) {}
+func (a AnonymousService) Prepare(ctx *gin.Context) {
+	if slices.Contains([]string{"POST", "PATCH", "PUT"}, ctx.Request.Method) {
+		bytes, err := io.ReadAll(ctx.Request.Body)
+		if err != nil {
+			panic(err)
+		}
+
+		var data interface{}
+		if err := json.Unmarshal(bytes, &data); err != nil {
+			panic(err)
+		}
+
+		ctx.Set("data", data)
+	}
+}

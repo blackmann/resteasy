@@ -3,85 +3,69 @@ package rest
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/assert/v2"
-	"io"
+	"golang.org/x/exp/maps"
 	"net/http"
 	"net/http/httptest"
-	"os"
+	"strings"
 	"testing"
 )
 
-func TestService_Find(t *testing.T) {
-	router := gin.Default()
-	group := router.Group("/demo")
+func TestService_Builder(t *testing.T) {
+	getHandler := func(id string, p Params) (interface{}, *ServiceError) {
+		return map[string]string{"id": id, "detail": "Mock detail"}, nil
+	}
 
-	findHandler := func(p Param) (interface{}, *ServiceError) {
-		return []int{1, 2, 3}, nil
+	findHandler := func(p Params) (interface{}, *ServiceError) {
+		return []map[string]string{{"id": "1", "detail": "Mock item 1"}, {"id": "2", "detail": "Mock item 2"}}, nil
+	}
+
+	patchHandler := func(id string, data interface{}, p Params) (interface{}, *ServiceError) {
+		original := map[string]string{"id": id, "detail": "Mock original"}
+
+		maps.Copy(original, data.(map[string]string))
+
+		return original, nil
+	}
+
+	createHandler := func(data interface{}, p Params) (interface{}, *ServiceError) {
+		return data, nil
+	}
+
+	updateHandler := func(id string, data interface{}, p Params) (interface{}, *ServiceError) {
+		return data, nil
+	}
+
+	removeHandler := func(id string, p Params) (interface{}, *ServiceError) {
+		return nil, nil
 	}
 
 	service, allowedMethods := NewService().
+		Create(createHandler).
+		Get(getHandler).
 		Find(findHandler).
+		Patch(patchHandler).
+		Update(updateHandler).
+		Remove(removeHandler).
 		Service()
 
-	With(service, allowedMethods...).Register(group)
+	router := gin.Default()
+	With(service, allowedMethods...).Register(router.Group("/demo"))
 
 	recorder := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/demo", nil)
 	router.ServeHTTP(recorder, req)
 
-	assert.Equal(t, recorder.Body.String(), "[1,2,3]")
-}
+	assert.Equal(
+		t,
+		"[{\"detail\":\"Mock item 1\",\"id\":\"1\"},{\"detail\":\"Mock item 2\",\"id\":\"2\"}]",
+		recorder.Body.String(),
+	)
 
-func TestService_Raw(t *testing.T) {
-	router := gin.Default()
+	recorder = httptest.NewRecorder()
+	req, _ = http.NewRequest("POST", "/demo", strings.NewReader("{\"detail\":\"new item\"}"))
 
-	router.GET("/demo", func(context *gin.Context) {
-		context.JSON(http.StatusOK, []int{1, 2, 3})
-	})
-
-	recorder := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/demo", nil)
+	req.Header.Set("Content-Type", "application/json")
 	router.ServeHTTP(recorder, req)
 
-	assert.Equal(t, recorder.Body.String(), "[1,2,3]")
-}
-
-func BenchmarkService_Find(b *testing.B) {
-	f, _ := os.OpenFile(os.DevNull, os.O_RDWR, 0755)
-	gin.DefaultWriter = io.MultiWriter(f)
-
-	router := gin.Default()
-	group := router.Group("/demo")
-
-	findHandler := func(p Param) (interface{}, *ServiceError) {
-		return []int{1, 2, 3}, nil
-	}
-
-	service, allowedMethods := NewService().
-		Find(findHandler).
-		Service()
-
-	With(service, allowedMethods...).Register(group)
-
-	for i := 0; i < b.N; i++ {
-		recorder := httptest.NewRecorder()
-		req, _ := http.NewRequest("GET", "/demo", nil)
-		router.ServeHTTP(recorder, req)
-	}
-}
-
-func BenchmarkService_Raw(b *testing.B) {
-	f, _ := os.OpenFile(os.DevNull, os.O_RDWR, 0755)
-	gin.DefaultWriter = io.MultiWriter(f)
-
-	router := gin.Default()
-
-	router.GET("/demo", func(context *gin.Context) {
-		context.JSON(http.StatusOK, []int{1, 2, 3})
-	})
-
-	for i := 0; i < b.N; i++ {
-		recorder := httptest.NewRecorder()
-		req, _ := http.NewRequest("GET", "/demo", nil)
-		router.ServeHTTP(recorder, req)
-	}
+	assert.Equal(t, "{\"detail\":\"new item\"}", recorder.Body.String())
 }

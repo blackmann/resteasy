@@ -12,19 +12,29 @@ type HandlerBuilder struct {
 	afterHooks     []gin.HandlerFunc
 }
 
-func getParam(ctx *gin.Context) Param {
-	p, exists := ctx.Get("params")
+func getParams(ctx *gin.Context) Params {
+	params, exists := ctx.Get("params")
 	if !exists {
-		p = Param{}
+		params = Params{}
 	}
 
-	return p.(Param)
+	return params.(Params)
+}
+
+func getData(ctx *gin.Context) interface{} {
+	var data, exists = ctx.Get("data")
+
+	if !exists {
+		panic("`data` does not exist in the context. Make sure a middleware is setting this value")
+	}
+
+	return data
 }
 
 func (b *HandlerBuilder) find(route *gin.RouterGroup) {
 	route.GET("", func(ctx *gin.Context) {
-		p := getParam(ctx)
-		response, err := b.service.Find(p)
+		params := getParams(ctx)
+		response, err := b.service.Find(params)
 		if err != nil {
 			ctx.JSON(err.Code, err.Detail)
 			return
@@ -36,9 +46,9 @@ func (b *HandlerBuilder) find(route *gin.RouterGroup) {
 
 func (b *HandlerBuilder) get(route *gin.RouterGroup) {
 	route.GET("/:id", func(ctx *gin.Context) {
-		p := getParam(ctx)
+		params := getParams(ctx)
 		id := ctx.Query("id")
-		response, err := b.service.Get(id, p)
+		response, err := b.service.Get(id, params)
 
 		if err != nil {
 			ctx.JSON(err.Code, err.Detail)
@@ -51,14 +61,9 @@ func (b *HandlerBuilder) get(route *gin.RouterGroup) {
 
 func (b *HandlerBuilder) create(route *gin.RouterGroup) {
 	route.POST("", func(ctx *gin.Context) {
-		var data, exists = ctx.Get("data")
-
-		if !exists {
-			panic("`data` does not exist in the context. Make sure a middleware is setting this value")
-		}
-
-		p := getParam(ctx)
-		response, err := b.service.Create(data, p)
+		data := getData(ctx)
+		params := getParams(ctx)
+		response, err := b.service.Create(data, params)
 		if err != nil {
 			ctx.JSON(err.Code, err.Detail)
 			return
@@ -71,8 +76,10 @@ func (b *HandlerBuilder) create(route *gin.RouterGroup) {
 func (b *HandlerBuilder) patch(route *gin.RouterGroup) {
 	route.PATCH("/:id", func(ctx *gin.Context) {
 		id := ctx.Query("id")
-		param := getParam(ctx)
-		response, err := b.service.Patch(id, param)
+		params := getParams(ctx)
+
+		data := getData(ctx)
+		response, err := b.service.Patch(id, data, params)
 
 		if err != nil {
 			ctx.JSON(err.Code, err.Detail)
@@ -86,8 +93,8 @@ func (b *HandlerBuilder) patch(route *gin.RouterGroup) {
 func (b *HandlerBuilder) remove(route *gin.RouterGroup) {
 	route.DELETE("/:id", func(ctx *gin.Context) {
 		id := ctx.Query("id")
-		param := getParam(ctx)
-		response, err := b.service.Remove(id, param)
+		params := getParams(ctx)
+		response, err := b.service.Remove(id, params)
 
 		if err != nil {
 			ctx.JSON(err.Code, err.Detail)
@@ -99,8 +106,18 @@ func (b *HandlerBuilder) remove(route *gin.RouterGroup) {
 }
 
 func (b *HandlerBuilder) update(route *gin.RouterGroup) {
-	route.PUT("/:id", func(context *gin.Context) {
+	route.PUT("/:id", func(ctx *gin.Context) {
+		id := ctx.Query("id")
+		data := getData(ctx)
+		params := getParams(ctx)
+		response, err := b.service.Update(id, data, params)
 
+		if err != nil {
+			ctx.JSON(err.Code, err.Detail)
+			return
+		}
+
+		ctx.JSON(http.StatusOK, response)
 	})
 }
 
@@ -135,6 +152,11 @@ func (b *HandlerBuilder) Register(route *gin.RouterGroup) {
 
 func (b *HandlerBuilder) Before(hooks ...gin.HandlerFunc) *HandlerBuilder {
 	b.beforeHooks = append(b.beforeHooks, hooks...)
+	return b
+}
+
+func (b *HandlerBuilder) After(hooks ...gin.HandlerFunc) *HandlerBuilder {
+	b.afterHooks = append(b.afterHooks, hooks...)
 	return b
 }
 
