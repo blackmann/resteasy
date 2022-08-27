@@ -31,7 +31,7 @@ func getData(ctx *gin.Context) interface{} {
 	return data
 }
 
-func (b *HandlerBuilder) find(route *gin.RouterGroup) {
+func (b HandlerBuilder) find(route *gin.RouterGroup) {
 	route.GET("", func(ctx *gin.Context) {
 		params := getParams(ctx)
 		response, err := b.service.Find(params)
@@ -44,7 +44,7 @@ func (b *HandlerBuilder) find(route *gin.RouterGroup) {
 	})
 }
 
-func (b *HandlerBuilder) get(route *gin.RouterGroup) {
+func (b HandlerBuilder) get(route *gin.RouterGroup) {
 	route.GET("/:id", func(ctx *gin.Context) {
 		params := getParams(ctx)
 		id := ctx.Query("id")
@@ -59,7 +59,7 @@ func (b *HandlerBuilder) get(route *gin.RouterGroup) {
 	})
 }
 
-func (b *HandlerBuilder) create(route *gin.RouterGroup) {
+func (b HandlerBuilder) create(route *gin.RouterGroup) {
 	route.POST("", func(ctx *gin.Context) {
 		data := getData(ctx)
 		params := getParams(ctx)
@@ -73,7 +73,7 @@ func (b *HandlerBuilder) create(route *gin.RouterGroup) {
 	})
 }
 
-func (b *HandlerBuilder) patch(route *gin.RouterGroup) {
+func (b HandlerBuilder) patch(route *gin.RouterGroup) {
 	route.PATCH("/:id", func(ctx *gin.Context) {
 		id := ctx.Query("id")
 		params := getParams(ctx)
@@ -90,7 +90,7 @@ func (b *HandlerBuilder) patch(route *gin.RouterGroup) {
 	})
 }
 
-func (b *HandlerBuilder) remove(route *gin.RouterGroup) {
+func (b HandlerBuilder) remove(route *gin.RouterGroup) {
 	route.DELETE("/:id", func(ctx *gin.Context) {
 		id := ctx.Query("id")
 		params := getParams(ctx)
@@ -105,7 +105,7 @@ func (b *HandlerBuilder) remove(route *gin.RouterGroup) {
 	})
 }
 
-func (b *HandlerBuilder) update(route *gin.RouterGroup) {
+func (b HandlerBuilder) update(route *gin.RouterGroup) {
 	route.PUT("/:id", func(ctx *gin.Context) {
 		id := ctx.Query("id")
 		data := getData(ctx)
@@ -121,7 +121,7 @@ func (b *HandlerBuilder) update(route *gin.RouterGroup) {
 	})
 }
 
-func (b *HandlerBuilder) Register(route *gin.RouterGroup) {
+func (b HandlerBuilder) Register(route *gin.RouterGroup) {
 	route.Use(b.service.Prepare)
 
 	route.Use(func(ctx *gin.Context) {
@@ -150,20 +150,20 @@ func (b *HandlerBuilder) Register(route *gin.RouterGroup) {
 	}
 }
 
-func (b *HandlerBuilder) Before(hooks ...gin.HandlerFunc) *HandlerBuilder {
+func (b HandlerBuilder) Before(hooks ...gin.HandlerFunc) HandlerBuilder {
 	b.beforeHooks = append(b.beforeHooks, hooks...)
 	return b
 }
 
-func (b *HandlerBuilder) After(hooks ...gin.HandlerFunc) *HandlerBuilder {
+func (b HandlerBuilder) After(hooks ...gin.HandlerFunc) HandlerBuilder {
 	b.afterHooks = append(b.afterHooks, hooks...)
 	return b
 }
 
-func With(service Service, allowedMethods ...int) *HandlerBuilder {
+func With(service Service, allowedMethods ...int) HandlerBuilder {
 	if len(allowedMethods) == 0 {
 		allowedMethods = AllMethods
 	}
 
-	return &HandlerBuilder{service: service, allowedMethods: allowedMethods}
+	return HandlerBuilder{service: service, allowedMethods: allowedMethods}
 }

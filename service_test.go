@@ -4,11 +4,19 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/assert/v2"
 	"golang.org/x/exp/maps"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 )
+
+func TestMain(m *testing.M) {
+	f, _ := os.OpenFile(os.DevNull, os.O_RDWR, 0755)
+	gin.DefaultWriter = io.MultiWriter(f)
+	os.Exit(m.Run())
+}
 
 func TestService_Builder(t *testing.T) {
 	getHandler := func(id string, p Params) (interface{}, *ServiceError) {
