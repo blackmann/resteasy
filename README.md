@@ -59,3 +59,13 @@ Following similar convention from FeathersJS, methods are nicknamed as the follo
 These may feel foreign at first sight, but they make it easy for you to implement services that are not directly coupled
 to HTTP request methods. This also allows to test your service implementations in isolation from HTTP request
 processing.
+
+### Hooks
+
+[TODO: Write]
+
+## Constraints
+
+This library does not intend to be an omnipotent library for developing rest services. Therefore, features will be
+limited to very few options. Since this library is based on `gin`, 1. you can implement custom behavior
+with [hooks](#hooks) or 2. implement your service from scratch. 
