@@ -12,7 +12,7 @@ type HandlerBuilder struct {
 	afterHooks     []gin.HandlerFunc
 }
 
-func getParams(ctx *gin.Context) Params {
+func GetParams(ctx *gin.Context) Params {
 	params, exists := ctx.Get("params")
 	if !exists {
 		params = Params{}
@@ -33,7 +33,7 @@ func getData(ctx *gin.Context) interface{} {
 
 func (b HandlerBuilder) find(route *gin.RouterGroup) {
 	route.GET("", func(ctx *gin.Context) {
-		params := getParams(ctx)
+		params := GetParams(ctx)
 		response, err := b.service.Find(params)
 		if err != nil {
 			ctx.JSON(err.Code, err.Detail)
@@ -46,7 +46,7 @@ func (b HandlerBuilder) find(route *gin.RouterGroup) {
 
 func (b HandlerBuilder) get(route *gin.RouterGroup) {
 	route.GET("/:id", func(ctx *gin.Context) {
-		params := getParams(ctx)
+		params := GetParams(ctx)
 		id := ctx.Param("id")
 		response, err := b.service.Get(id, params)
 
@@ -62,7 +62,7 @@ func (b HandlerBuilder) get(route *gin.RouterGroup) {
 func (b HandlerBuilder) create(route *gin.RouterGroup) {
 	route.POST("", func(ctx *gin.Context) {
 		data := getData(ctx)
-		params := getParams(ctx)
+		params := GetParams(ctx)
 		response, err := b.service.Create(data, params)
 		if err != nil {
 			ctx.JSON(err.Code, err.Detail)
@@ -76,7 +76,7 @@ func (b HandlerBuilder) create(route *gin.RouterGroup) {
 func (b HandlerBuilder) patch(route *gin.RouterGroup) {
 	route.PATCH("/:id", func(ctx *gin.Context) {
 		id := ctx.Param("id")
-		params := getParams(ctx)
+		params := GetParams(ctx)
 
 		data := getData(ctx)
 		response, err := b.service.Patch(id, data, params)
@@ -93,7 +93,7 @@ func (b HandlerBuilder) patch(route *gin.RouterGroup) {
 func (b HandlerBuilder) remove(route *gin.RouterGroup) {
 	route.DELETE("/:id", func(ctx *gin.Context) {
 		id := ctx.Param("id")
-		params := getParams(ctx)
+		params := GetParams(ctx)
 		response, err := b.service.Remove(id, params)
 
 		if err != nil {
@@ -109,7 +109,7 @@ func (b HandlerBuilder) update(route *gin.RouterGroup) {
 	route.PUT("/:id", func(ctx *gin.Context) {
 		id := ctx.Param("id")
 		data := getData(ctx)
-		params := getParams(ctx)
+		params := GetParams(ctx)
 		response, err := b.service.Update(id, data, params)
 
 		if err != nil {
