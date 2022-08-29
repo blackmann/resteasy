@@ -1,4 +1,4 @@
-package rest
+package resteasy
 
 import (
 	"github.com/gin-gonic/gin"
@@ -28,9 +28,9 @@ func TestService_Builder(t *testing.T) {
 	}
 
 	patchHandler := func(id string, data interface{}, p Params) (interface{}, *ServiceError) {
-		original := map[string]string{"id": id, "detail": "Mock original"}
+		original := map[string]interface{}{"id": id, "detail": "Mock original"}
 
-		maps.Copy(original, data.(map[string]string))
+		maps.Copy(original, data.(map[string]interface{}))
 
 		return original, nil
 	}
@@ -70,10 +70,37 @@ func TestService_Builder(t *testing.T) {
 	)
 
 	recorder = httptest.NewRecorder()
+	req, _ = http.NewRequest("GET", "/demo/1", nil)
+
+	router.ServeHTTP(recorder, req)
+
+	assert.Equal(t, "{\"detail\":\"Mock detail\",\"id\":\"1\"}", recorder.Body.String())
+
+	recorder = httptest.NewRecorder()
 	req, _ = http.NewRequest("POST", "/demo", strings.NewReader("{\"detail\":\"new item\"}"))
 
-	req.Header.Set("Content-Type", "application/json")
 	router.ServeHTTP(recorder, req)
 
 	assert.Equal(t, "{\"detail\":\"new item\"}", recorder.Body.String())
+
+	recorder = httptest.NewRecorder()
+	req, _ = http.NewRequest("PUT", "/demo/1", strings.NewReader("{\"detail\":\"new replacement\"}"))
+
+	router.ServeHTTP(recorder, req)
+
+	assert.Equal(t, "{\"detail\":\"new replacement\"}", recorder.Body.String())
+
+	recorder = httptest.NewRecorder()
+	req, _ = http.NewRequest("PATCH", "/demo/1", strings.NewReader("{\"detail\":\"patching\"}"))
+
+	router.ServeHTTP(recorder, req)
+
+	assert.Equal(t, "{\"detail\":\"patching\",\"id\":\"1\"}", recorder.Body.String())
+
+	recorder = httptest.NewRecorder()
+	req, _ = http.NewRequest("DELETE", "/demo/1", nil)
+
+	router.ServeHTTP(recorder, req)
+
+	assert.Equal(t, "null", recorder.Body.String())
 }

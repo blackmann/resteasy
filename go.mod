@@ -1,4 +1,4 @@
-module github.com/blackmann/rest
+module github.com/blackmann/resteasy
 
 go 1.18
 

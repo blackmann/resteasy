@@ -1,4 +1,4 @@
-package rest
+package resteasy
 
 type Params map[string]interface{}
 

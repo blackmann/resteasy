@@ -1,4 +1,4 @@
-package rest
+package resteasy
 
 import (
 	"github.com/gin-gonic/gin"
@@ -47,7 +47,7 @@ func (b HandlerBuilder) find(route *gin.RouterGroup) {
 func (b HandlerBuilder) get(route *gin.RouterGroup) {
 	route.GET("/:id", func(ctx *gin.Context) {
 		params := getParams(ctx)
-		id := ctx.Query("id")
+		id := ctx.Param("id")
 		response, err := b.service.Get(id, params)
 
 		if err != nil {
@@ -75,7 +75,7 @@ func (b HandlerBuilder) create(route *gin.RouterGroup) {
 
 func (b HandlerBuilder) patch(route *gin.RouterGroup) {
 	route.PATCH("/:id", func(ctx *gin.Context) {
-		id := ctx.Query("id")
+		id := ctx.Param("id")
 		params := getParams(ctx)
 
 		data := getData(ctx)
@@ -92,7 +92,7 @@ func (b HandlerBuilder) patch(route *gin.RouterGroup) {
 
 func (b HandlerBuilder) remove(route *gin.RouterGroup) {
 	route.DELETE("/:id", func(ctx *gin.Context) {
-		id := ctx.Query("id")
+		id := ctx.Param("id")
 		params := getParams(ctx)
 		response, err := b.service.Remove(id, params)
 
@@ -107,7 +107,7 @@ func (b HandlerBuilder) remove(route *gin.RouterGroup) {
 
 func (b HandlerBuilder) update(route *gin.RouterGroup) {
 	route.PUT("/:id", func(ctx *gin.Context) {
-		id := ctx.Query("id")
+		id := ctx.Param("id")
 		data := getData(ctx)
 		params := getParams(ctx)
 		response, err := b.service.Update(id, data, params)

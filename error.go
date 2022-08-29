@@ -1,4 +1,4 @@
-package rest
+package resteasy
 
 import "net/http"
 

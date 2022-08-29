@@ -1,4 +1,4 @@
-package rest
+package resteasy
 
 import "golang.org/x/exp/slices"
 
