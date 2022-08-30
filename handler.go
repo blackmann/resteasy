@@ -16,6 +16,7 @@ func GetParams(ctx *gin.Context) Params {
 	params, exists := ctx.Get("params")
 	if !exists {
 		params = Params{}
+		ctx.Set("params", params)
 	}
 
 	return params.(Params)
@@ -126,13 +127,17 @@ func (b HandlerBuilder) Register(route *gin.RouterGroup) {
 
 	route.Use(func(ctx *gin.Context) {
 		for _, hook := range b.beforeHooks {
-			hook(ctx)
+			if !ctx.IsAborted() {
+				hook(ctx)
+			}
 		}
 
 		ctx.Next()
 
 		for _, hook := range b.afterHooks {
-			hook(ctx)
+			if !ctx.IsAborted() {
+				hook(ctx)
+			}
 		}
 	})
 

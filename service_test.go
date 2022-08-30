@@ -104,3 +104,85 @@ func TestService_Builder(t *testing.T) {
 
 	assert.Equal(t, "null", recorder.Body.String())
 }
+
+func TestService_HooksFullWalk(t *testing.T) {
+	router := gin.Default()
+	hookWalk := 0
+
+	setCountParam := func(ctx *gin.Context) {
+		GetParams(ctx).Set("count", 3)
+		hookWalk += 1
+	}
+
+	multiplyCountParam := func(ctx *gin.Context) {
+		params := GetParams(ctx)
+		params.Set("count", params.Get("count").(int)*5)
+		hookWalk += 1
+	}
+
+	doExtra := func(ctx *gin.Context) {
+		hookWalk += 1
+	}
+
+	findHandler := func(p Params) (interface{}, *ServiceError) {
+		return map[string]int{"count": p.Get("count").(int)}, nil
+	}
+
+	service, allowedMethods := NewService().
+		Find(findHandler).
+		Service()
+
+	With(service, allowedMethods...).
+		Before(setCountParam, multiplyCountParam).
+		After(doExtra).
+		Register(router.Group("/count"))
+
+	recorder := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/count", nil)
+	router.ServeHTTP(recorder, req)
+
+	assert.Equal(t, recorder.Body.String(), "{\"count\":15}")
+	assert.Equal(t, hookWalk, 3)
+}
+
+func TestService_HooksAbortPremature(t *testing.T) {
+	router := gin.Default()
+	hookWalk := 0
+
+	setCountParam := func(ctx *gin.Context) {
+		GetParams(ctx).Set("count", 3)
+		hookWalk += 1
+	}
+
+	multiplyCountParam := func(ctx *gin.Context) {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"detail": "error"})
+	}
+
+	addOneMore := func(ctx *gin.Context) {
+		hookWalk += 1
+	}
+
+	doExtra := func(ctx *gin.Context) {
+		hookWalk += 1
+	}
+
+	findHandler := func(p Params) (interface{}, *ServiceError) {
+		return map[string]int{"count": p.Get("count").(int)}, nil
+	}
+
+	service, allowedMethods := NewService().
+		Find(findHandler).
+		Service()
+
+	With(service, allowedMethods...).
+		Before(setCountParam, multiplyCountParam, addOneMore).
+		After(doExtra).
+		Register(router.Group("/count"))
+
+	recorder := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/count", nil)
+	router.ServeHTTP(recorder, req)
+
+	assert.Equal(t, recorder.Body.String(), "{\"detail\":\"error\"}")
+	assert.Equal(t, hookWalk, 1)
+}
